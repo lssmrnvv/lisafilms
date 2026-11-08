@@ -94,6 +94,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .addform input { flex: 1 1 100%; min-width: 0; }
 .group { margin-bottom: 16px; }
 .group:last-child { margin-bottom: 0; }
+.key { list-style: none; margin: 10px 0 0; padding: 0; color: var(--muted); font-size: 13px; }
+.key li { margin: 3px 0; }
+.key b { color: var(--ink); font-weight: 600; }
 .count { color: var(--muted); font-size: 12px; }
 .note { color: var(--muted); font-size: 12px; }
 .empty-note { color: var(--muted); }
@@ -140,9 +143,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
     <h2>Mood</h2>
     <p class="hint">Tap to narrow the shuffle. Tap again to clear.</p>
     <div class="chips" id="row-mood"></div>
+    <ul class="key" id="key-mood"></ul>
     <div style="height:14px"></div>
     <h2>Effort</h2>
     <div class="chips" id="row-effort"></div>
+    <ul class="key" id="key-effort"></ul>
   </section>
 
   <section id="library-sec">
@@ -152,6 +157,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     <button class="add" type="button" id="add-btn">+ add a title</button>
     <form class="addform" id="addform">
       <input id="add-name" type="text" placeholder="Title" aria-label="New title">
+      <input id="add-year" type="text" inputmode="numeric" maxlength="4" placeholder="Year" aria-label="Year" style="flex:0 0 72px">
       <select id="add-mood" aria-label="Mood"></select>
       <select id="add-effort" aria-label="Effort"></select>
       <button class="btn" type="submit">Add</button>
@@ -188,92 +194,117 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <script>
 (function () {
   var MOODS = [
-    ['cozy', 'Cozy'],
-    ['fun', 'Light & funny'],
-    ['romance', 'Romance'],
-    ['art', 'Arthouse'],
-    ['tense', 'Tense'],
-    ['heavy', 'Heavy'],
-    ['doc', 'Documentary']
+    ['cozy', 'Cozy', 'warmth and texture, low stakes; on for the company, not the plot'],
+    ['fun', 'Light & funny', 'runs on jokes and pace; energy rather than comfort'],
+    ['romance', 'Romance', 'the love story is the point'],
+    ['art', 'Arthouse', 'made to be looked at; slower, more serious, less entertaining'],
+    ['tense', 'Tense', 'thriller, crime, horror; you watch to find out'],
+    ['heavy', 'Heavy', 'leaves a mark; grief, violence, injustice'],
+    ['doc', 'Documentary', 'real people, real events']
   ];
-  var EFFORT = [['1', 'Easy watch'], ['2', 'Mid'], ['3', 'Demanding']];
+  var EFFORT = [
+    ['1', 'Easy watch', 'asks nothing of you'],
+    ['2', 'Mid', 'wants attention, not effort'],
+    ['3', 'Demanding', 'long, slow or hard; needs a clear head']
+  ];
 
   // "Title|mood|effort"
   var FILMS = [
-    'Stealing Beauty|art|2','Zombi Child|art|2','Tully|art|2','Suspiria|tense|3','Wildlife|art|2',
-    'Green Book|cozy|1','Girl (2018)|heavy|3','Cracks|tense|2','Valley of the Dolls|art|2',
-    'The Witches of Eastwick|fun|1','Don’t Worry, He Won’t Get Far on Foot|art|2',
-    'Serendipity (2001)|romance|1','Love Me If You Dare|romance|2','When Harry Met Sally|romance|1',
-    'One Day (2011)|romance|2','Elizabeth (1998)|art|2','The King (2019)|art|2','Song to Song|art|2',
-    'Broken (2012)|heavy|3','Blade Runner|art|2','From Dusk Till Dawn|tense|2','The Gentlemen|fun|1',
-    'Memoirs of a Geisha|art|2','House of Flying Daggers|art|2','The Lake House|romance|1',
-    'Scoop (2006)|fun|1','The Devils (1971)|tense|3','17 Again|fun|1','The Fundamentals of Caring|fun|2',
-    '55 Steps|heavy|2','Seberg|heavy|2','Bombshell|heavy|2','Paradise Hills|art|2',
-    'Playing the Victim|heavy|2','Cherrybomb (2009)|fun|1','Homecoming (Beyoncé)|doc|1',
-    'Just Mercy|heavy|3','Ayka|heavy|3','Moonlight|art|3','Thank You for Smoking|fun|1','Birth|art|3',
-    'Under the Skin|art|3','American History X|heavy|3','Es ist zu Deinem Besten|fun|1',
-    'Hallo again – ein Tag für immer|fun|1','American Splendor|art|2','Work It|fun|1',
-    'Memories of Murder|tense|3','The Cassandra Crossing|tense|2','The 39 Steps|tense|2',
-    'Trial on the Road|heavy|3','No Country for Old Men|tense|3','Shoah|doc|3',
-    'Lumière and Company|doc|2','My Friend Ivan Lapshin|art|3','Casablanca|romance|2','Orlando|art|2',
-    'Pride and Prejudice (2005)|romance|1','Paterson|art|2','The Unknown Saint|art|2',
-    'Pieces of a Woman|heavy|3','Was wir wollen|art|2','The Social Dilemma|doc|2','Birders|doc|1',
-    'French Exit|fun|2','Basic Instinct|tense|2','The Song of Lunch|art|1','Scott Pilgrim vs. the World|fun|1',
-    'Scarface|tense|3','Taxi Driver|heavy|3','Emma|romance|1','About Time|romance|1','Boogie Nights|heavy|3',
-    'The Girl with the Dragon Tattoo (2009)|tense|3','The Girl Who Played with Fire|tense|3',
-    'The Girl Who Kicked the Hornets’ Nest|tense|3','The English Patient|romance|3',
-    'Indochine|art|2','The Hunger Games: The Ballad of Songbirds and Snakes|tense|2',
-    'The Lost Daughter|heavy|3','Leave the World Behind|tense|2','American Fiction|fun|2',
-    'Berlin Chamissoplatz|art|2','Killers of the Flower Moon|heavy|3','C’mon C’mon|cozy|2',
-    'Anyone But You|romance|1','Wrong Cops|fun|1','Medicine for Melancholy|art|2','Fremont|art|2',
-    'Fingernails|art|2','Mystic Pizza|cozy|1','The Remains of the Day|art|2','A Thousand and One|heavy|3',
-    'How to Blow Up a Pipeline|tense|2','Chevalier|art|2','A Real Pain|art|2','Birdman|art|2',
-    'It’s Only the End of the World|heavy|3','Now You See Me|fun|1','Oh Boy|art|2','Shallow Grave|tense|2',
-    'Human Traffic|fun|1','Actual People|art|2','Verdacht auf Liebe (1989)|romance|1',
-    'Wings of Desire|art|3','Lost in Translation|art|2','Black Dog (2024)|art|2','Run Lola Run|tense|1',
-    'Your Name|art|1','Grave of the Fireflies|heavy|3','A Bronx Tale|heavy|2','Barrio Triste|art|2',
-    'Showgirls|fun|2','Us (2019)|tense|2','Regretting You|romance|2',
-    'Deliver Me from Nowhere|art|2','Blue Moon (2025)|art|2','Found (2021)|doc|2','I Like Me|fun|1',
-    'Cool Runnings|fun|1','Open Hearts|heavy|3','France (2021)|art|2','Baby Mother|fun|2',
-    'Beau Is Afraid|heavy|3','Earth Mama|heavy|3','Mr. Death|doc|3','All of Us Strangers|heavy|3',
-    'Emily the Criminal|tense|2','Frances Ha|fun|1','Barton Fink|art|2','Come and See|heavy|3',
-    'Wendy and Lucy|heavy|2','Belle de Jour|art|2','Modern Romance|fun|1','The Thing (1982)|tense|3',
-    'Nights of Cabiria|art|2','Kids (1995)|heavy|3','Mid90s|art|2','Thirteen|heavy|3','Gummo|heavy|3',
-    'The Virgin Suicides|art|3','Ghost World|fun|2','Trainspotting|heavy|3','The Dead (1987)|art|2',
-    'Happiest Season|cozy|1','Christmas Holiday (1944)|art|2','Brazil|art|2','Cusp|doc|3','Mustang|heavy|3',
-    'Fish Tank|heavy|3','Picnic at Hanging Rock|art|2','Heavenly Creatures|tense|3',
-    'Everybody Dies But Me|heavy|3','Lilya 4-ever|heavy|3','Rosetta|heavy|3','20th Century Women|art|2',
-    'Girlhood (2014)|art|2','Petite Maman|cozy|2','An Education|art|2','Daisies (1966)|art|2',
-    'A Little Princess|cozy|1','Disturbia|tense|2','Zathura|fun|1','Wanted|tense|2','21 (2008)|tense|1',
-    'Rounders|tense|2','In Time|tense|2','You’ve Got Mail|cozy|1','Practical Magic|cozy|1',
-    'Baby Boom|cozy|1','Little Women|cozy|1','Stepmom|heavy|2','Autumn in New York|romance|2',
-    'Sidewalks of New York|romance|1','Wicker|art|2','Club Kid|art|2','Sense and Sensibility|romance|2',
-    'The Only Living Pickpocket in New York|tense|2','The Social Reckoning|tense|2','No Other Land|doc|3',
-    'Josie and the Pussycats|fun|1','A Cinderella Story|romance|1','The House Bunny|fun|1',
-    'Save the Last Dance|romance|1','Head Over Heels (2001)|fun|1','Mein Kind vom Mars|heavy|2',
-    'Between the Temples|fun|2','Anora|heavy|2','Jab We Met|romance|1','Once|romance|2',
-    'Right Now, Wrong Then|art|2','A Star Is Born (2018)|heavy|2','Amélie|cozy|1',
-    'If Beale Street Could Talk|art|3','Disobedience|art|3','Beyond the Lights|romance|2',
-    'Talk to Her|art|3','God’s Own Country|art|3','Cold War|art|3','I Am Love|art|2',
-    'The Deep Blue Sea|art|3','Oasis (2002)|heavy|3','Loving|art|2','Weekend (2011)|art|2',
-    'Moulin Rouge!|romance|1','Punch-Drunk Love|art|2','Two Lovers|heavy|3','High Fidelity|fun|1',
-    'Call Me by Your Name|art|2','Monsoon Wedding|cozy|2','Love & Basketball|romance|1','The Lobster|art|2',
-    'Her|art|2','Take This Waltz|heavy|2','Enough Said|romance|1','Only Lovers Left Alive|art|2',
-    'The Big Sick|romance|1','Brooklyn|romance|2','Decision to Leave|tense|2','Past Lives|art|3',
-    'Phantom Thread|art|2','Eternal Sunshine of the Spotless Mind|art|2','The Handmaiden|tense|3',
-    'Carol|art|2','Brokeback Mountain|heavy|3','Atonement|heavy|3','Portrait of a Lady on Fire|art|3',
-    'Before Sunset|romance|2','Before Midnight|romance|2','In the Mood for Love|art|3'
+    'Stealing Beauty|art|2|1996','Zombi Child|art|2|2019','Tully|art|2|2018','Suspiria|tense|3|1977',
+    'Wildlife|art|2|2018','Green Book|cozy|1|2018','Girl (2018)|heavy|3|2018','Cracks|tense|2|2009',
+    'Valley of the Dolls|art|2|1967','The Witches of Eastwick|fun|1|1987',
+    'Don’t Worry, He Won’t Get Far on Foot|art|2|2018','Serendipity (2001)|romance|1|2001',
+    'Love Me If You Dare|romance|2|2003','When Harry Met Sally|romance|1|1989','One Day (2011)|romance|2|2011',
+    'Elizabeth (1998)|art|2|1998','The King (2019)|art|2|2019','Song to Song|art|2|2017',
+    'Broken (2012)|heavy|3|2012','Blade Runner|art|2|1982','From Dusk Till Dawn|tense|2|1996',
+    'The Gentlemen|fun|1|2019','Memoirs of a Geisha|art|2|2005','House of Flying Daggers|art|2|2004',
+    'The Lake House|romance|1|2006','Scoop (2006)|fun|1|2006','The Devils (1971)|tense|3|1971',
+    '17 Again|fun|1|2009','The Fundamentals of Caring|fun|2|2016','55 Steps|heavy|2|2017','Seberg|heavy|2|2019',
+    'Bombshell|heavy|2|2019','Paradise Hills|art|2|2019','Playing the Victim|heavy|2|2006',
+    'Cherrybomb (2009)|fun|1|2009','Homecoming (Beyoncé)|doc|1|2019','Just Mercy|heavy|3|2019','Ayka|heavy|3|2018',
+    'Moonlight|art|3|2016','Thank You for Smoking|fun|1|2005','Birth|art|3|2004','Under the Skin|art|3|2013',
+    'American History X|heavy|3|1998','Es ist zu Deinem Besten|fun|1|2020',
+    'Hallo again – ein Tag für immer|fun|1|2020','American Splendor|art|2|2003','Work It|fun|1|2020',
+    'Memories of Murder|tense|3|2003','The Cassandra Crossing|tense|2|1976','The 39 Steps|tense|2|1935',
+    'Trial on the Road|heavy|3|1971','No Country for Old Men|tense|3|2007','Shoah|doc|3|1985',
+    'Lumière and Company|doc|2|1995','My Friend Ivan Lapshin|art|3|1984','Casablanca|romance|2|1942',
+    'Orlando|art|2|1992','Pride and Prejudice (2005)|romance|1|2005','Paterson|art|2|2016',
+    'The Unknown Saint|art|2|2019','Pieces of a Woman|heavy|3|2020','Was wir wollen|art|2|',
+    'The Social Dilemma|doc|2|2020','Birders|doc|1|2019','French Exit|fun|2|2020','Basic Instinct|tense|2|1992',
+    'The Song of Lunch|art|1|2010','Scott Pilgrim vs. the World|fun|1|2010','Scarface|tense|3|1983',
+    'Taxi Driver|heavy|3|1976','Emma|romance|1|2020','About Time|romance|1|2013','Boogie Nights|heavy|3|1997',
+    'The Girl with the Dragon Tattoo (2009)|tense|3|2009','The Girl Who Played with Fire|tense|3|2009',
+    'The Girl Who Kicked the Hornets’ Nest|tense|3|2009','The English Patient|romance|3|1996',
+    'Indochine|art|2|1992','The Hunger Games: The Ballad of Songbirds and Snakes|tense|2|2023',
+    'The Lost Daughter|heavy|3|2021','Leave the World Behind|tense|2|2023','American Fiction|fun|2|2023',
+    'Berlin Chamissoplatz|art|2|1980','Killers of the Flower Moon|heavy|3|2023','C’mon C’mon|cozy|2|2021',
+    'Anyone But You|romance|1|2023','Wrong Cops|fun|1|2013','Medicine for Melancholy|art|2|2008',
+    'Fremont|art|2|2023','Fingernails|art|2|2023','Mystic Pizza|cozy|1|1988',
+    'The Remains of the Day|art|2|1993','A Thousand and One|heavy|3|2023',
+    'How to Blow Up a Pipeline|tense|2|2022','Chevalier|art|2|2022','A Real Pain|art|2|2024',
+    'Birdman|art|2|2014','It’s Only the End of the World|heavy|3|2016','Now You See Me|fun|1|2013',
+    'Oh Boy|art|2|2012','Shallow Grave|tense|2|1994','Human Traffic|fun|1|1999','Actual People|art|2|2021',
+    'Verdacht auf Liebe (1989)|romance|1|1989','Wings of Desire|art|3|1987','Lost in Translation|art|2|2003',
+    'Black Dog (2024)|art|2|2024','Run Lola Run|tense|1|1998','Your Name|art|1|2016',
+    'Grave of the Fireflies|heavy|3|1988','A Bronx Tale|heavy|2|1993','Barrio Triste|art|2|',
+    'Showgirls|fun|2|1995','Us (2019)|tense|2|2019','Regretting You|romance|2|2025',
+    'Deliver Me from Nowhere|art|2|2025','Blue Moon (2025)|art|2|2025','Found (2021)|doc|2|2021',
+    'I Like Me|fun|1|','Cool Runnings|fun|1|1993','Open Hearts|heavy|3|2002','France (2021)|art|2|2021',
+    'Baby Mother|fun|2|1998','Beau Is Afraid|heavy|3|2023','Earth Mama|heavy|3|2023','Mr. Death|doc|3|1999',
+    'All of Us Strangers|heavy|3|2023','Emily the Criminal|tense|2|2022','Frances Ha|fun|1|2012',
+    'Barton Fink|art|2|1991','Come and See|heavy|3|1985','Wendy and Lucy|heavy|2|2008',
+    'Belle de Jour|art|2|1967','Modern Romance|fun|1|1981','The Thing (1982)|tense|3|1982',
+    'Nights of Cabiria|art|2|1957','Kids (1995)|heavy|3|1995','Mid90s|art|2|2018','Thirteen|heavy|3|2003',
+    'Gummo|heavy|3|1997','The Virgin Suicides|art|3|1999','Ghost World|fun|2|2001','Trainspotting|heavy|3|1996',
+    'The Dead (1987)|art|2|1987','Happiest Season|cozy|1|2020','Christmas Holiday (1944)|art|2|1944',
+    'Brazil|art|2|1985','Cusp|doc|3|2021','Mustang|heavy|3|2015','Fish Tank|heavy|3|2009',
+    'Picnic at Hanging Rock|art|2|1975','Heavenly Creatures|tense|3|1994','Everybody Dies But Me|heavy|3|2008',
+    'Lilya 4-ever|heavy|3|2002','Rosetta|heavy|3|1999','20th Century Women|art|2|2016',
+    'Girlhood (2014)|art|2|2014','Petite Maman|cozy|2|2021','An Education|art|2|2009',
+    'Daisies (1966)|art|2|1966','A Little Princess|cozy|1|1995','Disturbia|tense|2|2007','Zathura|fun|1|2005',
+    'Wanted|tense|2|2008','21 (2008)|tense|1|2008','Rounders|tense|2|1998','In Time|tense|2|2011',
+    'You’ve Got Mail|cozy|1|1998','Practical Magic|cozy|1|1998','Baby Boom|cozy|1|1987','Little Women|cozy|1|2019',
+    'Stepmom|heavy|2|1998','Autumn in New York|romance|2|2000','Sidewalks of New York|romance|1|2001',
+    'Wicker|art|2|','Club Kid|art|2|','Sense and Sensibility|romance|2|',
+    'The Only Living Pickpocket in New York|tense|2|','The Social Reckoning|tense|2|',
+    'No Other Land|doc|3|2024','Josie and the Pussycats|fun|1|2001','A Cinderella Story|romance|1|2004',
+    'The House Bunny|fun|1|2008','Save the Last Dance|romance|1|2001','Head Over Heels (2001)|fun|1|2001',
+    'Mein Kind vom Mars|heavy|2|','Between the Temples|fun|2|2024','Anora|heavy|2|2024',
+    'Jab We Met|romance|1|2007','Once|romance|2|2007','Right Now, Wrong Then|art|2|2015',
+    'A Star Is Born (2018)|heavy|2|2018','Amélie|cozy|1|2001','If Beale Street Could Talk|art|3|2018',
+    'Disobedience|art|3|2017','Beyond the Lights|romance|2|2014','Talk to Her|art|3|2002',
+    'God’s Own Country|art|3|2017','Cold War|art|3|2018','I Am Love|art|2|2009','The Deep Blue Sea|art|3|2011',
+    'Oasis (2002)|heavy|3|2002','Loving|art|2|2016','Weekend (2011)|art|2|2011','Moulin Rouge!|romance|1|2001',
+    'Punch-Drunk Love|art|2|2002','Two Lovers|heavy|3|2008','High Fidelity|fun|1|2000',
+    'Call Me by Your Name|art|2|2017','Monsoon Wedding|cozy|2|2001','Love & Basketball|romance|1|2000',
+    'The Lobster|art|2|2015','Her|art|2|2013','Take This Waltz|heavy|2|2011','Enough Said|romance|1|2013',
+    'Only Lovers Left Alive|art|2|2013','The Big Sick|romance|1|2017','Brooklyn|romance|2|2015',
+    'Decision to Leave|tense|2|2022','Past Lives|art|3|2023','Phantom Thread|art|2|2017',
+    'Eternal Sunshine of the Spotless Mind|art|2|2004','The Handmaiden|tense|3|2016','Carol|art|2|2015',
+    'Brokeback Mountain|heavy|3|2005','Atonement|heavy|3|2007','Portrait of a Lady on Fire|art|3|2019',
+    'Before Sunset|romance|2|2004','Before Midnight|romance|2|2013','In the Mood for Love|art|3|2000',
+    'A Million Ways to Die in the West|fun|1|2014','Brexit: The Uncivil War|art|2|2019','Christy|heavy|2|2025',
+    'David Attenborough: A Life on Our Planet|doc|2|2020','Die My Love|heavy|3|2025',
+    'Dream Scenario|fun|2|2023','Michael|art|2|','Nosferatu|tense|3|2024','Presence|tense|2|2024',
+    'The Moment|art|2|','Urchin|heavy|3|2025','Weapons|tense|3|2025',
+    'The Girl with the Dragon Tattoo (2011)|tense|3|2011'
   ];
 
   var TV = [
-    'American Crime Story|heavy|3','Mrs. America|art|2','The Politician|fun|1','The Handmaid’s Tale|heavy|3',
-    'Slings and Arrows|fun|1','I Am Not Okay with This|fun|1','Run (2020)|tense|2','Interrogation|tense|3',
-    'When They See Us|heavy|3','People Just Do Nothing|fun|1','Space Force|fun|1','4 Blocks|tense|3',
-    'All Creatures Great and Small|cozy|1','Barry|fun|2','Ozark|tense|3','The Sopranos|heavy|3',
-    'Twin Peaks|art|3','Babylon Berlin|tense|3','You|tense|2','American Vandal|fun|1','After Life|fun|2',
-    'Arrested Development|fun|1','Archive 81|tense|2','The Business of Drugs|doc|2','The Night Manager|tense|2',
-    'The Curse|art|3','A Murder at the End of the World|tense|2','Gavin and Stacey|fun|1',
-    'The Other Two|fun|1','The O.C.|fun|1'
+    'American Crime Story|heavy|3|2016','Mrs. America|art|2|2020','The Politician|fun|1|2019',
+    'The Handmaid’s Tale|heavy|3|2017','Slings and Arrows|fun|1|2003','I Am Not Okay with This|fun|1|2020',
+    'Run (2020)|tense|2|2020','Interrogation|tense|3|2020','When They See Us|heavy|3|2019',
+    'People Just Do Nothing|fun|1|2014','Space Force|fun|1|2020','4 Blocks|tense|3|2017',
+    'All Creatures Great and Small|cozy|1|2020','Barry|fun|2|2018','Ozark|tense|3|2017',
+    'The Sopranos|heavy|3|1999','Twin Peaks|art|3|1990','Babylon Berlin|tense|3|2017','You|tense|2|2018',
+    'American Vandal|fun|1|2017','After Life|fun|2|2019','Arrested Development|fun|1|2003',
+    'Archive 81|tense|2|2022','The Business of Drugs|doc|2|2020','The Night Manager|tense|2|2016',
+    'The Curse|art|3|2023','A Murder at the End of the World|tense|2|2023','Gavin and Stacey|fun|1|2007',
+    'The Other Two|fun|1|2019','The O.C.|fun|1|2003','Alien: Earth|tense|2|2025',
+    'Better Call Saul|tense|3|2015','Black Mirror|tense|3|2011','Carrie|tense|2|','DTF St. Louis|fun|1|2025',
+    'Gotham|tense|2|2014','Grantchester|cozy|1|2014','Hal and Harper|art|2|2025','I Love LA|fun|1|2025',
+    'Nobody Wants This|fun|1|2024','Pluribus|art|2|2025','Silo|tense|2|2023','The Morning Show|tense|2|2019',
+    'Trying|cozy|1|2020'
   ];
 
   var SEED = { film: FILMS, tv: TV };
@@ -300,13 +331,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
 
-  function parse(s) { var a = s.split('|'); return { n: a[0], m: a[1], e: a[2] }; }
+  function parse(s) { var a = s.split('|'); return { n: a[0], m: a[1], e: a[2], y: a[3] || '' }; }
+
+  // name -> year written into the data, used when OMDb has none
+  var OWN_YEAR = {};
+  ['film', 'tv'].forEach(function (w) {
+    SEED[w].forEach(function (s) { var it = parse(s); if (it.y) OWN_YEAR[it.n] = it.y; });
+  });
   function moodLabel(k) { for (var i = 0; i < MOODS.length; i++) if (MOODS[i][0] === k) return MOODS[i][1]; return k; }
   function effortLabel(k) { for (var i = 0; i < EFFORT.length; i++) if (EFFORT[i][0] === k) return EFFORT[i][1]; return k; }
   function meta(n) { return store.meta[n] || null; }
-  function shownName(n) {
+  function shownName(n) { return n.replace(/\s*\(\d{4}\)\s*$/, ''); }
+  // IMDb first, then the year written in the title, then the one in the data
+  function shownYear(n) {
     var md = meta(n);
-    return (md && md.y) ? n.replace(/\s*\(\d{4}\)\s*$/, '') : n;
+    if (md && md.y) return md.y;
+    var inName = n.match(/\((\d{4})\)\s*$/);
+    if (inName) return inName[1];
+    return OWN_YEAR[n] || '';
   }
 
   var tab = 'film';
@@ -333,22 +375,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   function buildFilters() {
-    [['row-mood', MOODS, 'm'], ['row-effort', EFFORT, 'e']].forEach(function (spec) {
+    [['row-mood', MOODS, 'm', 'key-mood'], ['row-effort', EFFORT, 'e', 'key-effort']].forEach(function (spec) {
       var host = document.getElementById(spec[0]);
       host.innerHTML = '';
+      var key = document.getElementById(spec[3]);
+      key.innerHTML = '';
       spec[1].forEach(function (o) {
         var b = document.createElement('button');
         b.type = 'button'; b.className = 'chip'; b.dataset.f = spec[2]; b.dataset.v = o[0];
         b.setAttribute('aria-pressed', 'false');
+        b.title = o[2];
         b.textContent = o[1];
         host.appendChild(b);
+
+        var li = document.createElement('li');
+        var strong = document.createElement('b');
+        strong.textContent = o[1];
+        li.appendChild(strong);
+        li.appendChild(document.createTextNode(' — ' + o[2]));
+        key.appendChild(li);
       });
     });
   }
 
   function decorate(b, name) {
-    var md = meta(name);
-    if (md && md.y) { var y = document.createElement('span'); y.className = 'y'; y.textContent = md.y; b.appendChild(y); }
+    var yr = shownYear(name), md = meta(name);
+    if (yr) { var y = document.createElement('span'); y.className = 'y'; y.textContent = yr; b.appendChild(y); }
     if (md && md.r) { var r = document.createElement('span'); r.className = 'r'; r.textContent = md.r; b.appendChild(r); }
   }
 
@@ -423,7 +475,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
     var md = meta(pick.n);
     t.textContent = shownName(pick.n); t.className = 'title';
     var bits = [];
-    if (md && md.y) bits.push(md.y);
+    var yr = shownYear(pick.n);
+    if (yr) bits.push(yr);
     if (md && md.r) bits.push('IMDb ' + md.r);
     if (pick.m) bits.push(moodLabel(pick.m), effortLabel(pick.e));
     m.textContent = bits.join(' · ');
@@ -540,13 +593,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
     if (!v) return;
     if (allItems(tab).some(function (it) { return it.n.toLowerCase() === v.toLowerCase(); })) { inp.value = ''; return; }
     store.hidden = store.hidden.filter(function (n) { return n !== v; });
-    store.extras[tab] = (store.extras[tab] || []).concat([v + '|' + am.value + '|' + ae.value]);
-    save(); inp.value = ''; this.classList.remove('open');
+    var yin = document.getElementById('add-year');
+    var yv = (yin.value || '').replace(/\D/g, '').slice(0, 4);
+    store.extras[tab] = (store.extras[tab] || []).concat([v + '|' + am.value + '|' + ae.value + '|' + yv]);
+    if (yv) OWN_YEAR[v] = yv;
+    save(); inp.value = ''; yin.value = ''; this.classList.remove('open');
     paint(); queueMeta();
   });
 
   // ---- Year, IMDb rating, poster and one line, from OMDb ----------------
   var inflight = 0, queue = [], saveTimer = null, repaintTimer = null;
+  var fatal = null, netFails = 0;
 
   function lazySave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 800); }
   function lazyRepaint() { clearTimeout(repaintTimer); repaintTimer = setTimeout(paint, 500); }
@@ -560,6 +617,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   function tally() {
+    if (fatal) return 'OMDb says: "' + fatal + '" — the key is wrong or not activated yet. OMDb emails an activation link; until you click it the key does not work.';
+    if (netFails) return 'Could not reach OMDb (' + netFails + ' failed requests). No connection, or the page is open in a preview that blocks outside requests — try it on the real site.';
     var have = 0, miss = 0;
     Object.keys(store.meta).forEach(function (k) { store.meta[k].miss ? miss++ : have++; });
     return have + ' titles filled in' + (miss ? ', ' + miss + ' not found on OMDb' : '') + '.';
@@ -575,9 +634,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
           '&plot=short&t=' + encodeURIComponent(p.q) + (p.y ? '&y=' + p.y : '') +
           '&type=' + (job.kind === 'tv' ? 'series' : 'movie');
         fetch(url).then(function (r) { return r.json(); }).then(function (d) {
-          if (d && d.Error && /api key/i.test(d.Error)) {
-            queue.length = 0;
-            stateLine('OMDb rejected that key. Check it and save again.');
+          if (d && d.Error && /api key|request limit/i.test(d.Error)) {
+            fatal = d.Error; queue.length = 0;
             return;
           }
           if (d && d.Response === 'True') {
@@ -592,7 +650,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
           }
           lazySave(); lazyRepaint();
         }).catch(function () {
-          store.meta[job.n] = { miss: 1 };
+          netFails++;
         }).then(function () {
           inflight--;
           if (queue.length) { stateLine('Loading ' + queue.length + ' more from OMDb…'); setTimeout(pump, 120); }
@@ -624,10 +682,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
     e.preventDefault();
     var v = document.getElementById('imdb-key').value.trim();
     if (!v) return;
-    store.key = v; save(); queueMeta();
+    store.key = v; fatal = null; netFails = 0; store.meta = {}; save(); queueMeta();
   });
   document.getElementById('key-clear').addEventListener('click', function () {
-    store.meta = {}; queue.length = 0; save();
+    store.meta = {}; queue.length = 0; fatal = null; netFails = 0; save();
     paint(); queueMeta();
   });
 
