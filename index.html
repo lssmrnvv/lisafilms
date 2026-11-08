@@ -84,6 +84,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip { min-height: 38px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); text-align: left; }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .chip .y { margin-left: 7px; font-size: 12px; color: var(--muted); }
+.chip .c { margin-left: 6px; font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--muted); }
+.chip[aria-pressed="true"] .c { color: var(--accent-ink); opacity: .85; }
 .chip .r { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent); }
 .chip[aria-pressed="true"] .y, .chip[aria-pressed="true"] .r { color: var(--accent-ink); opacity: .85; }
 .chip .x { margin-left: 8px; opacity: .6; padding: 0 2px; }
@@ -307,6 +309,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
     'Trying|cozy|1|2020'
   ];
 
+  // Checked against Wikipedia's "List of films in the Criterion Collection",
+  // matched on title and release year. Spine numbers in the comment.
+  var CRITERION = {
+    'Valley of the Dolls': 835, 'Blade Runner': 19, 'The 39 Steps': 56, 'Nights of Cabiria': 49,
+    'Picnic at Hanging Rock': 29, 'Brazil': 51, 'Casablanca': 73, 'Taxi Driver': 109,
+    'In the Mood for Love': 147, 'Boogie Nights': 366, 'Monsoon Wedding': 489, 'Wings of Desire': 490,
+    'Belle de Jour': 593, 'Shallow Grave': 616, 'Rosetta': 621, 'Weekend (2011)': 622,
+    'Shoah': 663, 'Frances Ha': 681, 'Punch-Drunk Love': 843, 'Ghost World': 872,
+    'The Virgin Suicides': 920, 'Cold War': 1005, 'Wildlife': 1031, 'Portrait of a Lady on Fire': 1034,
+    'Come and See': 1035, 'Memories of Murder': 1073, 'Love & Basketball': 1097, 'Daisies (1966)': 1157,
+    'Petite Maman': 1181, 'Medicine for Melancholy': 1183, 'Trainspotting': 1204,
+    'All of Us Strangers': 1234, 'Gummo': 1238, 'No Country for Old Men': 1243, 'Anora': 1259,
+    'The Dead (1987)': 1295, 'Birth': 1298, 'Killers of the Flower Moon': 1302,
+    'The English Patient': 1338, 'Fish Tank': 553
+  };
+
   var SEED = { film: FILMS, tv: TV };
   var KEY = 'myfilms.v1';
   var DEFAULT_KEY = '17abd927';
@@ -401,6 +419,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   function decorate(b, name) {
     var yr = shownYear(name), md = meta(name);
     if (yr) { var y = document.createElement('span'); y.className = 'y'; y.textContent = yr; b.appendChild(y); }
+    if (CRITERION[name]) {
+      var c = document.createElement('span');
+      c.className = 'c'; c.textContent = '(C)';
+      c.title = 'Criterion Collection, spine ' + CRITERION[name];
+      b.appendChild(c);
+    }
     if (md && md.r) { var r = document.createElement('span'); r.className = 'r'; r.textContent = md.r; b.appendChild(r); }
   }
 
@@ -477,16 +501,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
     var bits = [];
     var yr = shownYear(pick.n);
     if (yr) bits.push(yr);
+    if (CRITERION[pick.n]) bits.push('Criterion #' + CRITERION[pick.n]);
     if (md && md.r) bits.push('IMDb ' + md.r);
     if (pick.m) bits.push(moodLabel(pick.m), effortLabel(pick.e));
     m.textContent = bits.join(' · ');
-    pl.textContent = (md && md.d) ? md.d : '';
+    pl.textContent = (md && md.d) ? md.d
+      : (!md && store.key ? 'Loading…' : '');
     if (md && md.p) { img.src = md.p; img.alt = shownName(pick.n) + ' poster'; img.className = 'poster on'; }
     else { img.className = 'poster'; img.removeAttribute('src'); }
     var loved = store.liked.indexOf(pick.n) > -1;
     document.getElementById('mark-seen').disabled = false;
     document.getElementById('mark-loved').disabled = loved;
     document.getElementById('mark-loved').textContent = loved ? 'Already loved' : 'Seen & loved';
+  }
+
+  function showCard() {
+    var c = document.querySelector('.pick');
+    if (!c) return;
+    var box = c.getBoundingClientRect();
+    if (box.top < 0 || box.bottom > window.innerHeight) {
+      try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      catch (e) { c.scrollIntoView(); }
+    }
   }
 
   function paint() {
@@ -515,6 +551,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
     var from = others.length ? others : list;
     pick = from[Math.floor(Math.random() * from.length)];
     paint();
+    ensureMeta(pick.n, tab === 'tv' ? 'tv' : 'film');
   }
 
   document.addEventListener('click', function (e) {
@@ -541,13 +578,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
     }
     if (chip && chip.dataset.liked) {
       pick = { n: chip.dataset.liked, m: null, e: null };
-      bump(chip.dataset.liked); paint(); return;
+      bump(chip.dataset.liked); paint(); showCard();
+      ensureMeta(pick.n, 'film'); return;
     }
     if (chip && chip.dataset.pickable) {
       var name = chip.dataset.n;
       if (pick && pick.n === name) { pick = null; paint(); return; }
       pick = allItems(tab).filter(function (it) { return it.n === name; })[0] || { n: name, m: null, e: null };
-      bump(name); paint(); return;
+      bump(name); paint(); showCard();
+      ensureMeta(name, tab === 'tv' ? 'tv' : 'film'); return;
     }
 
     if (e.target.closest('#add-btn')) {
@@ -674,6 +713,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
               });
           });
       });
+  }
+
+  // The card jumps the queue: whatever is on screen gets looked up right away.
+  function ensureMeta(name, kind) {
+    if (!store.key || !name || store.meta[name] !== undefined || fatal) return;
+    queue = queue.filter(function (j) { return j.n !== name; });
+    lookup({ n: name, kind: kind }).then(function () { save(); paint(); }).catch(function () {});
   }
 
   function pump() {
