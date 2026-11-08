@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Films</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="My Films">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #f4f2ef;
+  --surface: #ffffff;
+  --ink: #1b1a22;
+  --muted: #605d6c;
+  --line: #ddd9d3;
+  --accent: #5b3fb8;
+  --accent-ink: #ffffff;
+  --tint: #ece7fa;
+  --display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', sans-serif;
+  --body: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131218; --surface: #1c1b24; --ink: #ece9f2; --muted: #a09cae;
+    --line: #2f2d3a; --accent: #b6a1ff; --accent-ink: #15101f; --tint: #262234;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131218; --surface: #1c1b24; --ink: #ece9f2; --muted: #a09cae;
+  --line: #2f2d3a; --accent: #b6a1ff; --accent-ink: #15101f; --tint: #262234;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.45 var(--body);
+  padding-block: 18px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 20px; }
+h1 { font: 700 28px/1.1 var(--display); margin: 0; }
+.sub { margin: 4px 0 0; color: var(--muted); }
+h2 { font: 600 12px/1 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.hint { color: var(--muted); font-size: 13px; margin: -4px 0 10px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+.tabs { display: flex; gap: 8px; }
+.tab { flex: 1; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; }
+.tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.pick { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 14px; }
+.pick .title { font: 700 26px/1.15 var(--display); overflow-wrap: anywhere; }
+.pick .title.empty { color: var(--muted); font-weight: 500; font-size: 20px; }
+.pick .meta { color: var(--muted); font-size: 13px; min-height: 1.2em; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.grow { flex: 1; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn:focus-visible, .chip:focus-visible, .tab:focus-visible, .add:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.row { margin-bottom: 14px; }
+.row:last-child { margin-bottom: 0; }
+.lbl { font-weight: 600; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 38px; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); text-align: left; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip .n { opacity: .55; margin-left: 6px; font-size: 12px; }
+.chip .x { margin-left: 8px; opacity: .6; padding: 0 2px; }
+.add { min-height: 38px; padding: 6px 12px; border-radius: 10px; border: 1px dashed var(--line); background: transparent; color: var(--muted); }
+.addform { display: none; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.addform.open { display: flex; }
+.addform input, .addform select { min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; }
+.addform input { flex: 1 1 100%; min-width: 0; }
+.group { margin-bottom: 16px; }
+.group:last-child { margin-bottom: 0; }
+.count { color: var(--muted); font-size: 12px; }
+.note { color: var(--muted); font-size: 12px; }
+.empty-note { color: var(--muted); }
+.todo ul { margin: 0; padding-left: 18px; color: var(--muted); }
+.todo li { margin: 4px 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .chip, .tab { transition: background-color .12s, border-color .12s; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>My films</h1>
+    <p class="sub">Pick a mood, hit shuffle.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" type="button" role="tab" data-tab="film" aria-selected="true">Films</button>
+    <button class="tab" type="button" role="tab" data-tab="tv" aria-selected="false">Series</button>
+    <button class="tab" type="button" role="tab" data-tab="liked" aria-selected="false">Loved</button>
+  </div>
+
+  <section class="pick" aria-live="polite">
+    <div>
+      <div class="title empty" id="pick-title">Hit shuffle</div>
+      <div class="meta" id="pick-meta"></div>
+    </div>
+    <div class="btns">
+      <button class="btn grow" id="shuffle" type="button">Shuffle</button>
+      <button class="btn ghost" id="clear" type="button">Clear</button>
+    </div>
+    <div class="btns">
+      <button class="btn ghost grow" id="mark-seen" type="button" disabled>Seen — remove</button>
+      <button class="btn ghost grow" id="mark-loved" type="button" disabled>Seen &amp; loved</button>
+    </div>
+  </section>
+
+  <section id="filters">
+    <h2>Mood</h2>
+    <p class="hint">Tap to narrow the shuffle. Tap again to clear.</p>
+    <div class="chips" id="row-mood"></div>
+    <div style="height:14px"></div>
+    <h2>Effort</h2>
+    <div class="chips" id="row-effort"></div>
+  </section>
+
+  <section id="library-sec">
+    <h2>Library <span class="count" id="lib-count"></span></h2>
+    <p class="hint">Tap a title to put it on the card. Most-tapped rise to the top of each group.</p>
+    <div id="library"></div>
+    <button class="add" type="button" id="add-btn">+ add a title</button>
+    <form class="addform" id="addform">
+      <input id="add-name" type="text" placeholder="Title" aria-label="New title">
+      <select id="add-mood" aria-label="Mood"></select>
+      <select id="add-effort" aria-label="Effort"></select>
+      <button class="btn" type="submit">Add</button>
+    </form>
+  </section>
+
+  <section id="liked-sec" hidden>
+    <h2>Seen &amp; loved <span class="count" id="liked-count"></span></h2>
+    <p class="hint">Things worth watching again.</p>
+    <div class="chips" id="liked-list"></div>
+    <div style="height:12px"></div>
+    <button class="btn" id="reshuffle" type="button">Shuffle a rewatch</button>
+  </section>
+
+  <section class="todo" id="todo-sec">
+    <h2>Still to sort out</h2>
+    <ul>
+      <li>«биг бэнкс» — which title is this?</li>
+      <li>«Finger weg??» — you flagged it yourself</li>
+      <li>«Патиссон» — a typo for Paterson, or a different film?</li>
+      <li>«H2O» — which one?</li>
+      <li>«Springsteen» — logged as the Deliver Me from Nowhere biopic; correct?</li>
+      <li>Directors and movements you named, not single films: Miyazaki, Linklater, Hal Hartley, Cassavetes, Dogme 95</li>
+    </ul>
+    <p class="note">Everything you add, love or remove stays on this device.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var MOODS = [
+    ['cozy', 'Cozy'],
+    ['fun', 'Light & funny'],
+    ['romance', 'Romance'],
+    ['art', 'Arthouse'],
+    ['tense', 'Tense'],
+    ['heavy', 'Heavy'],
+    ['doc', 'Documentary']
+  ];
+  var EFFORT = [['1', 'Easy watch'], ['2', 'Mid'], ['3', 'Demanding']];
+
+  // "Title|mood|effort"
+  var FILMS = [
+    'Stealing Beauty|art|2','Zombi Child|art|2','Tully|art|2','Suspiria|tense|3','Wildlife|art|2',
+    'Green Book|cozy|1','Girl (2018)|heavy|3','Cracks|tense|2','Valley of the Dolls|art|2',
+    'The Witches of Eastwick|fun|1','Don’t Worry, He Won’t Get Far on Foot|art|2',
+    'Serendipity (2001)|romance|1','Love Me If You Dare|romance|2','When Harry Met Sally|romance|1',
+    'One Day (2011)|romance|2','Elizabeth (1998)|art|2','The King (2019)|art|2','Song to Song|art|2',
+    'Broken (2012)|heavy|3','Blade Runner|art|2','From Dusk Till Dawn|tense|2','The Gentlemen|fun|1',
+    'Memoirs of a Geisha|art|2','House of Flying Daggers|art|2','The Lake House|romance|1',
+    'Scoop (2006)|fun|1','The Devils (1972)|tense|3','17 Again|fun|1','The Fundamentals of Caring|fun|2',
+    '55 Steps|heavy|2','Seberg|heavy|2','Bombshell|heavy|2','Paradise Hills|art|2',
+    'Playing the Victim|heavy|2','Cherrybomb (2009)|fun|1','Homecoming (Beyoncé)|doc|1',
+    'Just Mercy|heavy|3','Ayka|heavy|3','Moonlight|art|3','Thank You for Smoking|fun|1','Birth|art|3',
+    'Under the Skin|art|3','American History X|heavy|3','Es ist zu Deinem Besten|fun|1',
+    'Hallo again – ein Tag für immer|fun|1','American Splendor|art|2','Work It|fun|1',
+    'Memories of Murder|tense|3','The Cassandra Crossing|tense|2','The 39 Steps|tense|2',
+    'Trial on the Road|heavy|3','No Country for Old Men|tense|3','Shoah|doc|3',
+    'Lumière and Company|doc|2','My Friend Ivan Lapshin|art|3','Casablanca|romance|2','Orlando|art|2',
+    'Pride and Prejudice (2005)|romance|1','Paterson|art|2','The Unknown Saint|art|2',
+    'Pieces of a Woman|heavy|3','Was wir wollen|art|2','The Social Dilemma|doc|2','Birders|doc|1',
+    'French Exit|fun|2','Basic Instinct|tense|2','The Song of Lunch|art|1','Scott Pilgrim vs. the World|fun|1',
+    'Scarface|tense|3','Taxi Driver|heavy|3','Emma|romance|1','About Time|romance|1','Boogie Nights|heavy|3',
+    'Millennium trilogy (Verblendung, Verdammnis, Vergebung)|tense|3','The English Patient|romance|3',
+    'Indochine|art|2','H2O|art|2','The Hunger Games prequel|tense|2','The Lost Daughter|heavy|3',
+    'Leave the World Behind|tense|2','American Fiction|fun|2','Berlin Chamissoplatz|art|2',
+    'Killers of the Flower Moon|heavy|3','C’mon C’mon|cozy|2','Anyone But You|romance|1',
+    'Wrong Cops|fun|1','Medicine for Melancholy|art|2','Fremont|art|2','Fingernails|art|2',
+    'Mystic Pizza|cozy|1','The Remains of the Day|art|2','A Thousand and One|heavy|3',
+    'How to Blow Up a Pipeline|tense|2','Chevalier|art|2','A Real Pain|art|2','Birdman|art|2',
+    'It’s Only the End of the World|heavy|3','Now You See Me|fun|1','Oh Boy|art|2','Shallow Grave|tense|2',
+    'Human Traffic|fun|1','Actual People|art|2','Verdacht auf Liebe (1989)|romance|1',
+    'Wings of Desire|art|3','Lost in Translation|art|2','Black Dog|art|2','Run Lola Run|tense|1',
+    'Your Name|art|1','Grave of the Fireflies|heavy|3','A Bronx Tale|heavy|2','Barrio Triste|art|2',
+    'Showgirls|fun|2','Us (2019)|tense|2','Regretting You|romance|2',
+    'Springsteen: Deliver Me from Nowhere|art|2','Blue Moon|art|2','Found|doc|2','I Like Me|fun|1',
+    'Cool Runnings|fun|1','Open Hearts|heavy|3','France (2021)|art|2','Baby Mother|fun|2',
+    'Beau Is Afraid|heavy|3','Earth Mama|heavy|3','Mr. Death|doc|3','All of Us Strangers|heavy|3',
+    'Emily the Criminal|tense|2','Frances Ha|fun|1','Barton Fink|art|2','Come and See|heavy|3',
+    'Wendy and Lucy|heavy|2','Belle de Jour|art|2','Modern Romance|fun|1','The Thing (1982)|tense|3',
+    'Nights of Cabiria|art|2','Kids (1995)|heavy|3','Mid90s|art|2','Thirteen|heavy|3','Gummo|heavy|3',
+    'The Virgin Suicides|art|3','Ghost World|fun|2','Trainspotting|heavy|3','The Dead (1987)|art|2',
+    'Happiest Season|cozy|1','Christmas Holiday (1944)|art|2','Brazil|art|2','CUSP|doc|3','Mustang|heavy|3',
+    'Fish Tank|heavy|3','Picnic at Hanging Rock|art|2','Heavenly Creatures|tense|3',
+    'Everybody Dies But Me|heavy|3','Lilya 4-ever|heavy|3','Rosetta|heavy|3','20th Century Women|art|2',
+    'Girlhood (2014)|art|2','Petite Maman|cozy|2','An Education|art|2','Daisies (1966)|art|2',
+    'A Little Princess|cozy|1','Disturbia|tense|2','Zathura|fun|1','Wanted|tense|2','21 (2008)|tense|1',
+    'Rounders|tense|2','In Time|tense|2','You’ve Got Mail|cozy|1','Practical Magic|cozy|1',
+    'Baby Boom|cozy|1','Little Women|cozy|1','Stepmom|heavy|2','Autumn in New York|romance|2',
+    'Sidewalks of New York|romance|1','Wicker|art|2','Club Kid|art|2','Sense and Sensibility (new)|romance|2',
+    'The Only Living Pickpocket in New York|tense|2','The Social Reckoning|tense|2','No Other Land|doc|3',
+    'Josie and the Pussycats|fun|1','A Cinderella Story|romance|1','The House Bunny|fun|1',
+    'Save the Last Dance|romance|1','Head Over Heels|fun|1','Mein Kind vom Mars|heavy|2',
+    'Between the Temples|fun|2','Anora|heavy|2','Jab We Met|romance|1','Once|romance|2',
+    'Right Now, Wrong Then|art|2','A Star Is Born (2018)|heavy|2','Amélie|cozy|1',
+    'If Beale Street Could Talk|art|3','Disobedience|art|3','Beyond the Lights|romance|2',
+    'Talk to Her|art|3','God’s Own Country|art|3','Cold War|art|3','I Am Love|art|2',
+    'The Deep Blue Sea|art|3','Oasis (2002)|heavy|3','Loving|art|2','Weekend (2011)|art|2',
+    'Moulin Rouge!|romance|1','Punch-Drunk Love|art|2','Two Lovers|heavy|3','High Fidelity|fun|1',
+    'Call Me by Your Name|art|2','Monsoon Wedding|cozy|2','Love & Basketball|romance|1','The Lobster|art|2',
+    'Her|art|2','Take This Waltz|heavy|2','Enough Said|romance|1','Only Lovers Left Alive|art|2',
+    'The Big Sick|romance|1','Brooklyn|romance|2','Decision to Leave|tense|2','Past Lives|art|3',
+    'Phantom Thread|art|2','Eternal Sunshine of the Spotless Mind|art|2','The Handmaiden|tense|3',
+    'Carol|art|2','Brokeback Mountain|heavy|3','Atonement|heavy|3','Portrait of a Lady on Fire|art|3',
+    'Before Sunset|romance|2','Before Midnight|romance|2','In the Mood for Love|art|3'
+  ];
+
+  var TV = [
+    'American Crime Story|heavy|3','Mrs. America|art|2','The Politician|fun|1','The Handmaid’s Tale|heavy|3',
+    'Slings and Arrows|fun|1','I Am Not Okay with This|fun|1','Run|tense|2','Interrogation|tense|3',
+    'When They See Us|heavy|3','People Just Do Nothing|fun|1','Space Force|fun|1','4 Blocks|tense|3',
+    'All Creatures Great and Small|cozy|1','Barry|fun|2','Ozark|tense|3','The Sopranos|heavy|3',
+    'Twin Peaks|art|3','Babylon Berlin|tense|3','You|tense|2','American Vandal|fun|1','After Life|fun|2',
+    'Arrested Development|fun|1','Archive 81|tense|2','The Business of Drugs|doc|2','The Night Manager|tense|2',
+    'The Curse|art|3','A Murder at the End of the World|tense|2','Gavin and Stacey|fun|1',
+    'The Other Two|fun|1','The O.C.|fun|1'
+  ];
+
+  var SEED = { film: FILMS, tv: TV };
+  var KEY = 'myfilms.v1';
+
+  var store = { counts: {}, extras: { film: [], tv: [] }, hidden: [], liked: ['Kate & Leopold'] };
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) {
+      var p = JSON.parse(raw);
+      store.counts = p.counts || {};
+      store.extras = p.extras || { film: [], tv: [] };
+      store.extras.film = store.extras.film || [];
+      store.extras.tv = store.extras.tv || [];
+      store.hidden = p.hidden || [];
+      store.liked = p.liked || [];
+    }
+  } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+
+  function parse(s) { var a = s.split('|'); return { n: a[0], m: a[1], e: a[2] }; }
+  function moodLabel(k) { for (var i = 0; i < MOODS.length; i++) if (MOODS[i][0] === k) return MOODS[i][1]; return k; }
+  function effortLabel(k) { for (var i = 0; i < EFFORT.length; i++) if (EFFORT[i][0] === k) return EFFORT[i][1]; return k; }
+
+  var tab = 'film';
+  var filter = { m: null, e: null };
+  var pick = null;
+
+  function allItems(which) {
+    var seed = SEED[which].map(parse);
+    var extra = (store.extras[which] || []).map(parse);
+    var out = seed.concat(extra);
+    return out.filter(function (it) { return store.hidden.indexOf(it.n) < 0; });
+  }
+  function isCustom(which, name) {
+    return (store.extras[which] || []).some(function (s) { return parse(s).n === name; });
+  }
+  function cnt(n) { return store.counts[n] || 0; }
+  function bump(n) { store.counts[n] = cnt(n) + 1; save(); }
+
+  function pool() {
+    return allItems(tab).filter(function (it) {
+      if (filter.m && it.m !== filter.m) return false;
+      if (filter.e && it.e !== filter.e) return false;
+      return true;
+    });
+  }
+
+  function buildFilters() {
+    var hm = document.getElementById('row-mood');
+    hm.innerHTML = '';
+    MOODS.forEach(function (m) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.dataset.f = 'm'; b.dataset.v = m[0];
+      b.setAttribute('aria-pressed', 'false');
+      b.textContent = m[1];
+      hm.appendChild(b);
+    });
+    var he = document.getElementById('row-effort');
+    he.innerHTML = '';
+    EFFORT.forEach(function (e) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.dataset.f = 'e'; b.dataset.v = e[0];
+      b.setAttribute('aria-pressed', 'false');
+      b.textContent = e[1];
+      he.appendChild(b);
+    });
+  }
+
+  function itemChip(it, which) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.n = it.n; b.dataset.pickable = '1';
+    b.setAttribute('aria-pressed', pick && pick.n === it.n ? 'true' : 'false');
+    b.appendChild(document.createTextNode(it.n));
+    var c = cnt(it.n);
+    if (c) { var s = document.createElement('span'); s.className = 'n'; s.textContent = c; b.appendChild(s); }
+    if (isCustom(which, it.n)) {
+      var x = document.createElement('span');
+      x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove');
+      b.appendChild(x);
+    }
+    return b;
+  }
+
+  function buildLibrary() {
+    var host = document.getElementById('library');
+    host.innerHTML = '';
+    var items = pool();
+    document.getElementById('lib-count').textContent = items.length;
+    if (!items.length) {
+      host.innerHTML = '<p class="empty-note">Nothing matches this filter.</p>';
+      return;
+    }
+    MOODS.forEach(function (m) {
+      var group = items.filter(function (it) { return it.m === m[0]; });
+      if (!group.length) return;
+      group.sort(function (a, b) { return cnt(b.n) - cnt(a.n) || a.n.localeCompare(b.n); });
+      var d = document.createElement('div'); d.className = 'group';
+      var l = document.createElement('div'); l.className = 'lbl';
+      l.textContent = m[1] + '  ';
+      var c = document.createElement('span'); c.className = 'count'; c.textContent = group.length;
+      l.appendChild(c);
+      var ch = document.createElement('div'); ch.className = 'chips';
+      group.forEach(function (it) { ch.appendChild(itemChip(it, tab)); });
+      d.appendChild(l); d.appendChild(ch);
+      host.appendChild(d);
+    });
+  }
+
+  function buildLiked() {
+    var host = document.getElementById('liked-list');
+    host.innerHTML = '';
+    document.getElementById('liked-count').textContent = store.liked.length;
+    if (!store.liked.length) {
+      host.innerHTML = '<p class="empty-note">Nothing here yet.</p>';
+      return;
+    }
+    store.liked.slice().sort(function (a, b) { return cnt(b) - cnt(a) || a.localeCompare(b); })
+      .forEach(function (n) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip'; b.dataset.liked = n;
+        b.setAttribute('aria-pressed', pick && pick.n === n ? 'true' : 'false');
+        b.appendChild(document.createTextNode(n));
+        var x = document.createElement('span');
+        x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove');
+        b.appendChild(x);
+        host.appendChild(b);
+      });
+  }
+
+  function paintPick() {
+    var t = document.getElementById('pick-title'), m = document.getElementById('pick-meta');
+    if (!pick) {
+      t.textContent = 'Hit shuffle'; t.className = 'title empty'; m.textContent = '';
+      document.getElementById('mark-seen').disabled = true;
+      document.getElementById('mark-loved').disabled = true;
+      return;
+    }
+    t.textContent = pick.n; t.className = 'title';
+    m.textContent = pick.m ? moodLabel(pick.m) + ' · ' + effortLabel(pick.e) : '';
+    var loved = store.liked.indexOf(pick.n) > -1;
+    document.getElementById('mark-seen').disabled = false;
+    document.getElementById('mark-loved').disabled = loved;
+    document.getElementById('mark-loved').textContent = loved ? 'Already loved' : 'Seen & loved';
+  }
+
+  function paint() {
+    document.querySelectorAll('.tab').forEach(function (b) {
+      b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+    });
+    var onLiked = tab === 'liked';
+    document.getElementById('filters').hidden = onLiked;
+    document.getElementById('library-sec').hidden = onLiked;
+    document.getElementById('liked-sec').hidden = !onLiked;
+    document.getElementById('todo-sec').hidden = onLiked;
+    document.getElementById('shuffle').textContent = onLiked ? 'Shuffle a rewatch' : 'Shuffle';
+    document.querySelectorAll('[data-f]').forEach(function (b) {
+      b.setAttribute('aria-pressed', filter[b.dataset.f] === b.dataset.v ? 'true' : 'false');
+    });
+    if (onLiked) buildLiked(); else buildLibrary();
+    paintPick();
+  }
+
+  function shuffle() {
+    var list;
+    if (tab === 'liked') {
+      list = store.liked.map(function (n) { return { n: n, m: null, e: null }; });
+    } else {
+      list = pool();
+    }
+    if (!list.length) { pick = null; paint(); return; }
+    var others = list.filter(function (it) { return !pick || it.n !== pick.n; });
+    var from = others.length ? others : list;
+    pick = from[Math.floor(Math.random() * from.length)];
+    paint();
+  }
+
+  document.addEventListener('click', function (e) {
+    var tb = e.target.closest('.tab');
+    if (tb) { tab = tb.dataset.tab; pick = null; paint(); return; }
+
+    var f = e.target.closest('[data-f]');
+    if (f) {
+      filter[f.dataset.f] = filter[f.dataset.f] === f.dataset.v ? null : f.dataset.v;
+      paint();
+      return;
+    }
+
+    var x = e.target.closest('.x');
+    var chip = e.target.closest('.chip');
+
+    if (x && chip && chip.dataset.liked) {
+      store.liked = store.liked.filter(function (n) { return n !== chip.dataset.liked; });
+      if (pick && pick.n === chip.dataset.liked) pick = null;
+      save(); paint(); return;
+    }
+    if (x && chip && chip.dataset.pickable) {
+      var nm = chip.dataset.n;
+      store.extras[tab] = (store.extras[tab] || []).filter(function (s) { return parse(s).n !== nm; });
+      delete store.counts[nm];
+      if (pick && pick.n === nm) pick = null;
+      save(); paint(); return;
+    }
+    if (chip && chip.dataset.liked) {
+      pick = { n: chip.dataset.liked, m: null, e: null };
+      bump(chip.dataset.liked); paint(); return;
+    }
+    if (chip && chip.dataset.pickable) {
+      var name = chip.dataset.n;
+      if (pick && pick.n === name) { pick = null; paint(); return; }
+      var found = allItems(tab).filter(function (it) { return it.n === name; })[0];
+      pick = found || { n: name, m: null, e: null };
+      bump(name); paint(); return;
+    }
+
+    if (e.target.closest('#add-btn')) {
+      var fm = document.getElementById('addform');
+      fm.classList.toggle('open');
+      if (fm.classList.contains('open')) document.getElementById('add-name').focus();
+    }
+  });
+
+  document.getElementById('shuffle').addEventListener('click', shuffle);
+  document.getElementById('reshuffle').addEventListener('click', function () { tab = 'liked'; shuffle(); });
+  document.getElementById('clear').addEventListener('click', function () {
+    pick = null; filter.m = null; filter.e = null; paint();
+  });
+
+  document.getElementById('mark-seen').addEventListener('click', function () {
+    if (!pick) return;
+    if (tab === 'liked') {
+      store.liked = store.liked.filter(function (n) { return n !== pick.n; });
+    } else {
+      if (store.hidden.indexOf(pick.n) < 0) store.hidden.push(pick.n);
+      store.extras[tab] = (store.extras[tab] || []).filter(function (s) { return parse(s).n !== pick.n; });
+    }
+    pick = null; save(); paint();
+  });
+
+  document.getElementById('mark-loved').addEventListener('click', function () {
+    if (!pick) return;
+    if (store.liked.indexOf(pick.n) < 0) store.liked.push(pick.n);
+    if (store.hidden.indexOf(pick.n) < 0) store.hidden.push(pick.n);
+    pick = null; save(); paint();
+  });
+
+  var am = document.getElementById('add-mood'), ae = document.getElementById('add-effort');
+  MOODS.forEach(function (m) { var o = document.createElement('option'); o.value = m[0]; o.textContent = m[1]; am.appendChild(o); });
+  EFFORT.forEach(function (x) { var o = document.createElement('option'); o.value = x[0]; o.textContent = x[1]; ae.appendChild(o); });
+  ae.value = '2';
+
+  document.getElementById('addform').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var inp = document.getElementById('add-name');
+    var v = inp.value.trim();
+    if (!v) return;
+    var exists = allItems(tab).some(function (it) { return it.n.toLowerCase() === v.toLowerCase(); });
+    if (exists) { inp.value = ''; return; }
+    store.hidden = store.hidden.filter(function (n) { return n !== v; });
+    store.extras[tab] = (store.extras[tab] || []).concat([v + '|' + am.value + '|' + ae.value]);
+    save();
+    inp.value = '';
+    this.classList.remove('open');
+    paint();
+  });
+
+  buildFilters();
+  paint();
+})();
+</script>
+</body>
+</html>
