@@ -612,7 +612,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
   function queryFor(name) {
     var y = null, m = name.match(/\((\d{4})\)/);
     if (m) y = m[1];
-    var q = name.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s*–.*$/, '').replace(/\s+/g, ' ').trim();
+    var q = name
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .replace(/\s*–.*$/, '')
+      .replace(/[‘’]/g, "'")
+      .replace(/[“”]/g, '"')
+      .replace(/—/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
     return { q: q, y: y };
   }
 
@@ -624,30 +631,57 @@ button { font: inherit; color: inherit; cursor: pointer; }
     return have + ' titles filled in' + (miss ? ', ' + miss + ' not found on OMDb' : '') + '.';
   }
 
+  var API = 'https://www.omdbapi.com/';
+  function omdb(params) {
+    return fetch(API + '?apikey=' + encodeURIComponent(store.key) + params)
+      .then(function (r) { return r.json(); });
+  }
+  function keyDead(d) {
+    if (d && d.Error && /api key|request limit/i.test(d.Error)) {
+      fatal = d.Error; queue.length = 0; return true;
+    }
+    return false;
+  }
+  function record(name, d) {
+    store.meta[name] = {
+      y: d.Year && d.Year !== 'N/A' ? d.Year : '',
+      r: d.imdbRating && d.imdbRating !== 'N/A' ? d.imdbRating : '',
+      p: d.Poster && d.Poster !== 'N/A' ? d.Poster : '',
+      d: d.Plot && d.Plot !== 'N/A' ? d.Plot : ''
+    };
+  }
+
+  // Exact title first. If that misses, fall back to OMDb search and take the
+  // top hit, which rescues odd punctuation and slightly-off titles.
+  function lookup(job) {
+    var p = queryFor(job.n);
+    var type = '&type=' + (job.kind === 'tv' ? 'series' : 'movie');
+    return omdb('&plot=short&t=' + encodeURIComponent(p.q) + (p.y ? '&y=' + p.y : '') + type)
+      .then(function (d) {
+        if (keyDead(d)) return;
+        if (d && d.Response === 'True') { record(job.n, d); return; }
+        return omdb('&s=' + encodeURIComponent(p.q) + (p.y ? '&y=' + p.y : '') + type)
+          .then(function (s) {
+            if (keyDead(s)) return;
+            if (!s || s.Response !== 'True' || !s.Search || !s.Search.length) {
+              store.meta[job.n] = { miss: 1 }; return;
+            }
+            return omdb('&plot=short&i=' + encodeURIComponent(s.Search[0].imdbID))
+              .then(function (full) {
+                if (keyDead(full)) return;
+                if (full && full.Response === 'True') record(job.n, full);
+                else store.meta[job.n] = { miss: 1 };
+              });
+          });
+      });
+  }
+
   function pump() {
     if (!store.key) return;
     while (inflight < 3 && queue.length) {
       (function (job) {
         inflight++;
-        var p = queryFor(job.n);
-        var url = 'https://www.omdbapi.com/?apikey=' + encodeURIComponent(store.key) +
-          '&plot=short&t=' + encodeURIComponent(p.q) + (p.y ? '&y=' + p.y : '') +
-          '&type=' + (job.kind === 'tv' ? 'series' : 'movie');
-        fetch(url).then(function (r) { return r.json(); }).then(function (d) {
-          if (d && d.Error && /api key|request limit/i.test(d.Error)) {
-            fatal = d.Error; queue.length = 0;
-            return;
-          }
-          if (d && d.Response === 'True') {
-            store.meta[job.n] = {
-              y: d.Year && d.Year !== 'N/A' ? d.Year : '',
-              r: d.imdbRating && d.imdbRating !== 'N/A' ? d.imdbRating : '',
-              p: d.Poster && d.Poster !== 'N/A' ? d.Poster : '',
-              d: d.Plot && d.Plot !== 'N/A' ? d.Plot : ''
-            };
-          } else {
-            store.meta[job.n] = { miss: 1 };
-          }
+        lookup(job).then(function () {
           lazySave(); lazyRepaint();
         }).catch(function () {
           netFails++;
